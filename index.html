@@ -3,370 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Flippy Truck - Rafael Santos</title>
+    <title>Flippy Truck Game - Rafael Silva</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@400;700;900&display=swap');
         
-        body { background: #020617; margin: 0; overflow: hidden; font-family: 'Inter', sans-serif; color: white; touch-action: manipulation; }
+        * { -webkit-tap-highlight-color: transparent; user-select: none; }
+        
+        @keyframes bg-shimmer {
+            0% { background-position: 0% 50%; background-color: #020617; }
+            50% { background-position: 100% 50%; background-color: #1e1b4b; }
+            100% { background-position: 0% 50%; background-color: #020617; }
+        }
+
+        body { 
+            background: #020617; margin: 0; overflow: hidden; 
+            font-family: 'Inter', sans-serif; color: white; touch-action: none; 
+            height: 100vh; display: flex; flex-direction: column;
+        }
         .font-header { font-family: 'Orbitron', sans-serif; }
 
-        /* ANIMAÇÕES NEON GERAIS */
-        @keyframes neon-slow-purple {
-            0%, 100% { text-shadow: 0 0 10px #a855f7, 0 0 20px #a855f7; color: #f3e8ff; }
-            50% { text-shadow: 0 0 25px #a855f7, 0 0 40px #a855f7; color: #fff; }
+        @keyframes neon-glow {
+            0%, 100% { opacity: 1; text-shadow: 0 0 15px currentColor; box-shadow: 0 0 15px currentColor; border-color: currentColor; }
+            50% { opacity: 0.7; text-shadow: 0 0 5px currentColor; box-shadow: 0 0 5px currentColor; border-color: currentColor; }
+        }
+        .neon-pulse { animation: neon-glow 2.5s infinite ease-in-out; }
+        .oval-container { border-radius: 9999px; border-width: 2px; padding: 12px 24px; }
+
+        #gasPedal { 
+            width: 70px; 
+            height: 110px; 
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 3px solid #a855f7;
+            border-radius: 15px 15px 10px 10px;
+            display: flex; 
+            flex-direction: column;
+            align-items: center; 
+            justify-content: space-between; 
+            padding: 10px 0;
+            pointer-events: auto;
+            transform: perspective(100px) rotateX(10deg);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5), 0 0 15px rgba(168, 85, 247, 0.4);
+            transition: transform 0.1s, box-shadow 0.1s;
         }
 
-        /* ANIMAÇÕES DE PULSAÇÃO DOS BOTÕES */
-        @keyframes neon-pulse-green {
-            0%, 100% { box-shadow: 0 0 5px #10b981, inset 0 0 2px #10b981; text-shadow: 0 0 5px #10b981; border-color: #10b981; }
-            50% { box-shadow: 0 0 20px #10b981, inset 0 0 10px #10b981; text-shadow: 0 0 15px #10b981; border-color: #34d399; }
-        }
-        @keyframes neon-pulse-yellow {
-            0%, 100% { box-shadow: 0 0 5px #fbbf24, inset 0 0 2px #fbbf24; text-shadow: 0 0 5px #fbbf24; border-color: #fbbf24; }
-            50% { box-shadow: 0 0 20px #fbbf24, inset 0 0 10px #fbbf24; text-shadow: 0 0 15px #fbbf24; border-color: #fcd34d; }
-        }
-        @keyframes neon-pulse-red {
-            0%, 100% { box-shadow: 0 0 5px #ef4444, inset 0 0 2px #ef4444; text-shadow: 0 0 5px #ef4444; border-color: #ef4444; }
-            50% { box-shadow: 0 0 20px #ef4444, inset 0 0 10px #ef4444; text-shadow: 0 0 15px #ef4444; border-color: #f87171; }
+        #gasPedal:active {
+            transform: perspective(100px) rotateX(25deg) scale(0.92);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 0 25px rgba(168, 85, 247, 0.7);
+            background: #1e1b4b;
         }
 
-        @keyframes marquee {
-            0% { transform: translateX(100%); }
-            100% { transform: translateX(-100%); }
+        .pedal-line { width: 40px; height: 4px; background: rgba(168, 85, 247, 0.3); border-radius: 2px; }
+
+        .overlay-screen { 
+            position: absolute; inset: 0; z-index: 100; flex-direction: column; 
+            align-items: center; justify-content: center; text-align: center;
+            background: linear-gradient(-45deg, #020617, #0f172a, #1e1b4b, #020617);
+            background-size: 400% 400%;
+            animation: bg-shimmer 8s infinite ease-in-out;
         }
 
-        @keyframes truck-slide {
-            0% { transform: translateX(-150px); }
-            100% { transform: translateX(100vw); }
+        #game-wrapper { flex: 1; position: relative; width: 100%; background: black; overflow: hidden; }
+        canvas { width: 100%; height: 100%; }
+
+        #mobile-hud {
+            position: absolute; bottom: 10%; right: 12%;
+            display: none; flex-direction: column; align-items: center; 
+            gap: 25px; z-index: 150; pointer-events: none;
         }
 
-        .marquee-container {
-            position: absolute; top: 0; width: 100%; background: rgba(168, 85, 247, 0.2);
-            border-bottom: 2px solid #a855f7; overflow: hidden; white-space: nowrap; 
-            padding: 10px 0; z-index: 200; box-shadow: 0 0 15px rgba(168, 85, 247, 0.5);
-        }
-        .marquee-text {
-            display: inline-block; animation: marquee 20s linear infinite;
-            font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
-            color: #fff; text-shadow: 0 0 8px #a855f7;
-        }
+        .diff-btn { width: 85%; max-width: 280px; margin: 12px; font-weight: 900; text-transform: uppercase; background: rgba(0,0,0,0.3); letter-spacing: 2px; }
 
-        .title-purple { animation: neon-slow-purple 3s infinite ease-in-out; }
-        
-        .neon-box { border: 2px solid; border-radius: 1.5rem; padding: 1.5rem 2.5rem; display: inline-block; background: rgba(0,0,0,0.5); }
-        .box-purple { border-color: #a855f7; box-shadow: 0 0 15px #a855f7; }
-        .box-red { border-color: #ef4444; box-shadow: 0 0 15px #ef4444; }
-
-        .diff-btn { 
-            width: 280px; padding: 16px; margin: 10px; border-radius: 1.5rem; 
-            font-weight: 900; text-transform: uppercase; font-size: 14px; 
-            cursor: pointer; background: rgba(0, 0, 0, 0.6); border: 2px solid;
-            transition: transform 0.2s ease;
-        }
-        .diff-btn:active { transform: scale(0.90); }
-
-        /* CLASSES DE PULSAÇÃO APLICADAS AOS BOTÕES */
-        .btn-facil { color: #10b981; animation: neon-pulse-green 2.5s infinite ease-in-out; }
-        .btn-media { color: #fbbf24; animation: neon-pulse-yellow 2.5s infinite ease-in-out; }
-        .btn-dificil { color: #ef4444; animation: neon-pulse-red 2.5s infinite ease-in-out; }
-
-        .overlay-screen {
-            position: absolute; inset: 0; background: radial-gradient(circle, rgba(15,23,42,1) 0%, rgba(2,6,23,1) 100%);
-            z-index: 100; flex-direction: column; align-items: center; justify-content: center; text-align: center;
-        }
-
-        .truck-animation-container {
-            position: absolute; bottom: 50px; left: 0; width: 100%; height: 60px; pointer-events: none; overflow: hidden;
-        }
-        .truck-wrapper {
-            position: absolute; animation: truck-slide 12s linear infinite; width: 70px;
+        #countdown-container {
+            position: absolute; inset: 0; display: none; flex-direction: column;
+            align-items: center; justify-content: center; z-index: 140; background: rgba(0,0,0,0.4);
         }
     </style>
 </head>
-<body class="flex h-screen">
+<body>
 
-    <div class="marquee-container">
-        <div class="marquee-text font-header">🚀 FLIPPY TRUCK - DESENVOLVIDO POR RAFAEL DA SILVA SANTOS - ENTREGUE SUA CARGA COM SEGURANÇA! 📦</div>
+    <div id="top-msg" class="w-full text-center py-4 bg-slate-950 border-b border-purple-900 z-[110]">
+        <div class="inline-block oval-container neon-pulse text-purple-400">
+            <h2 class="font-header text-[10px]">Flippy Truck Game - entregue a carga no prazo!</h2>
+        </div>
     </div>
 
-    <div id="player-input-screen" class="overlay-screen flex">
-        <div class="neon-box box-purple mb-8">
-            <h1 class="font-header text-4xl font-black title-purple">EMBARQUE DO MOTORISTA</h1>
-        </div>
-        <input type="text" id="playerNameInput" class="bg-slate-900 border-2 border-purple-500 p-4 rounded-2xl text-center outline-none mb-6 text-white" placeholder="NOME DO PILOTO..." maxlength="15">
-        <button onclick="saveAndContinue()" class="diff-btn btn-media">INICIAR CARREIRA</button>
+    <div id="game-wrapper">
+        <canvas id="game"></canvas>
 
-        <div class="truck-animation-container">
-            <div class="truck-wrapper">
-                <div style="position:relative;">
-                    <div style="background:#64748b; width:45px; height:38px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; overflow: hidden;">
-                        <span style="font-size: 8px; color: black; font-weight: 900; line-height: 0.85; transform: scaleX(0.8);">FLIPPY<br>TRUCK</span>
-                    </div>
-                    <div style="background:#1e40af; width:25px; height:28px; position:absolute; left:45px; top:10px;">
-                         <div style="background:#a5f3fc; width:10px; height:12px; position:absolute; right:2px; top:4px; border-radius:2px;"></div>
-                    </div>
-                    <div style="background:white; width:12px; height:12px; border-radius:50%; position:absolute; left:8px; top:32px; border:1px solid #000;">
-                        <div style="background:black; width:4px; height:4px; border-radius:50%; margin:3px;"></div>
-                    </div>
-                    <div style="background:white; width:12px; height:12px; border-radius:50%; position:absolute; left:28px; top:32px; border:1px solid #000;">
-                        <div style="background:black; width:4px; height:4px; border-radius:50%; margin:3px;"></div>
-                    </div>
-                    <div style="background:white; width:12px; height:12px; border-radius:50%; position:absolute; left:52px; top:32px; border:1px solid #000;">
-                        <div style="background:black; width:4px; height:4px; border-radius:50%; margin:3px;"></div>
-                    </div>
+        <div id="start-screen" class="overlay-screen flex">
+            <div class="flex flex-col items-center mb-10">
+                <div class="oval-container neon-pulse px-10 text-white border-white">
+                    <h1 class="font-header text-2xl">Flippy Truck Game</h1>
                 </div>
+                <p class="text-purple-400 font-header text-[10px] mt-4 tracking-widest opacity-80">Criado por Rafael Silva</p>
+            </div>
+
+            <button onclick="selectDifficulty(380, 1.8, true)" class="diff-btn oval-container neon-pulse text-emerald-400 border-emerald-500">Fácil</button>
+            <button onclick="selectDifficulty(280, 2.8, false)" class="diff-btn oval-container neon-pulse text-amber-400 border-amber-500">Médio</button>
+            <button onclick="selectDifficulty(200, 4.0, false)" class="diff-btn oval-container neon-pulse text-red-400 border-red-500">Difícil</button>
+        </div>
+
+        <div id="game-over-screen" class="overlay-screen hidden">
+            <div class="oval-container neon-pulse mb-10 text-red-600">
+                <h1 class="font-header text-4xl uppercase">Bateu!</h1>
+            </div>
+            <button onclick="restartSameLevel()" class="diff-btn oval-container neon-pulse text-white">RECOMEÇAR</button>
+            <button onclick="backToMenu()" class="diff-btn oval-container neon-pulse text-purple-400">DIFICULDADE</button>
+        </div>
+
+        <div id="victory-screen" class="overlay-screen hidden">
+            <div class="oval-container neon-pulse mb-8 text-green-500">
+                <h1 class="font-header text-3xl">Carga entregue</h1>
+            </div>
+            <button onclick="backToMenu()" class="diff-btn oval-container neon-pulse text-green-400">VOLTAR AO MENU</button>
+        </div>
+
+        <div id="countdown-container">
+            <div id="countdown" class="font-header text-9xl text-purple-500 mb-4">3</div>
+            <div class="oval-container border-purple-500 bg-black/60 neon-pulse">
+                <p class="font-header text-[10px] text-white tracking-widest text-center">
+                    TOQUE NO PEDAL PARA DESVIAR<br>DOS OBSTÁCULOS
+                </p>
+            </div>
+        </div>
+
+        <div id="mobile-hud">
+            <div class="oval-container neon-pulse text-purple-500 border-purple-600 px-6 py-2 bg-black/80">
+                <p class="text-[9px] uppercase font-bold text-slate-400 text-center">Caixas</p>
+                <p id="boxCount" class="text-3xl font-black italic text-center">10</p>
+            </div>
+            
+            <div id="gasPedal">
+                <div class="pedal-line"></div>
+                <div class="pedal-line"></div>
+                <div class="pedal-line"></div>
+                <span class="font-black text-[9px] text-purple-400 uppercase">Acelerar</span>
+                <div class="pedal-line"></div>
             </div>
         </div>
     </div>
 
-    <div id="start-screen" class="overlay-screen hidden">
-        <div class="neon-box box-purple mb-8">
-            <h1 class="font-header text-6xl font-black title-purple">FLIPPY TRUCK</h1>
-        </div>
-        <div class="mb-8 bg-slate-900/80 px-8 py-6 rounded-3xl border border-purple-500/30">
-            <p id="saved-name-display" class="font-bold text-lg italic mb-4 uppercase"></p>
-            <button onclick="showNameInput()" class="px-4 py-1 border border-slate-500 rounded-lg text-[10px]">ALTERAR PILOTO</button>
-        </div>
-        <button onclick="selectDifficulty(285, 1.3)" class="diff-btn btn-facil">ENTREGA FÁCIL</button>
-        <button onclick="selectDifficulty(210, 1.8)" class="diff-btn btn-media">ENTREGA MÉDIA</button>
-        <button onclick="selectDifficulty(170, 2.5)" class="diff-btn btn-dificil">ENTREGA DIFÍCIL</button>
-    </div>
-
-    <div id="game-over-screen" class="overlay-screen hidden">
-        <div class="neon-box box-red mb-8">
-            <h1 class="font-header text-7xl font-black title-red">GAME OVER</h1>
-        </div>
-        <button onclick="restartSameLevel()" class="diff-btn btn-dificil text-xl py-6 mb-6">TENTAR NOVAMENTE</button>
-        <button onclick="backToMenu()" class="diff-btn btn-facil text-sm py-2">VOLTAR AO MENU</button>
-    </div>
-
-    <div id="victory-screen" class="overlay-screen hidden">
-        <div class="neon-box box-purple mb-6" style="border-color: #10b981;">
-            <h1 class="font-header text-5xl font-black title-purple" style="text-shadow: 0 0 10px #10b981;">SUCESSO!</h1>
-        </div>
-        <p id="victory-msg" class="mb-8 font-black text-xl uppercase tracking-widest"></p>
-        <button onclick="newMission()" class="diff-btn btn-facil px-12 py-4">PRÓXIMA ENTREGA</button>
-    </div>
-
-    <div id="countdown" class="hidden fixed inset-0 z-[200] flex items-center justify-center font-header text-9xl font-black italic title-purple">3</div>
-
-    <div class="flex-1 relative flex items-center justify-center bg-black">
-        <canvas id="game"></canvas>
-    </div>
-
-    <div class="w-[260px] bg-slate-950 border-l border-slate-800 flex flex-col items-center justify-around p-6">
-        <div class="text-center bg-slate-900/50 p-6 rounded-3xl border border-purple-500/20 w-full">
-            <p class="text-[10px] font-bold uppercase mb-1">MOTORISTA</p>
-            <p id="panelPlayerName" class="text-sm font-black truncate title-purple">---</p>
-        </div>
-        <div class="text-center">
-             <p class="text-[12px] font-bold uppercase mb-2">CARGAS NO BAÚ</p>
-             <p id="boxCount" class="text-6xl font-black italic title-purple">10</p>
-        </div>
-        <div id="gasPedal" class="bg-slate-800 w-[140px] h-[160px] rounded-3xl border-b-[10px] border-black flex items-center justify-center cursor-pointer active:translate-y-2 transition-all">
-            <span class="font-black text-sm uppercase">ACELERAR</span>
-        </div>
-        <p class="font-header text-[10px] font-black uppercase text-center title-purple">SOFTWARE BY RAFAEL</p>
-    </div>
-
     <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        let activeMelody = null;
 
-        function playSfx(freq, type, duration, vol) {
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+        function playNote(freq, dur, type = 'sine', vol = 0.1) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = type;
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             gain.gain.setValueAtTime(vol, audioCtx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + duration);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + dur);
         }
 
-        function playMelody(notes, loop = false) {
-            stopMelody();
-            let tempo = 0;
-            const playNextNote = () => {
-                notes.forEach(n => {
-                    setTimeout(() => {
-                        if (!activeMelody) return;
-                        playSfx(n.f, n.t || 'sine', n.d, 0.1);
-                    }, tempo);
-                    tempo += n.d * 1000;
-                });
-                if (loop && activeMelody) {
-                    setTimeout(() => { if(activeMelody) { tempo = 0; playNextNote(); } }, tempo);
-                }
-            };
-            activeMelody = true;
-            playNextNote();
+        function resizeCanvas() {
+            const wrapper = document.getElementById('game-wrapper');
+            canvas.width = wrapper.clientWidth;
+            canvas.height = wrapper.clientHeight;
         }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
 
-        function stopMelody() { activeMelody = null; }
-
-        const musicWin = [{f: 523, d: 0.1}, {f: 659, d: 0.1}, {f: 783, d: 0.1}, {f: 1046, d: 0.3}, {f: 0, d: 0.1}, {f: 783, d: 0.1}, {f: 1046, d: 0.4}];
-        const musicLose = [{f: 392, d: 0.3, t: 'triangle'}, {f: 349, d: 0.3, t: 'triangle'}, {f: 311, d: 0.3, t: 'triangle'}, {f: 293, d: 0.6, t: 'triangle'}];
-
-        let gameGap, gameSpeed, playerName = "", gameActive = false, requestID;
-        const canvas = document.getElementById('game');
-        const ctx = canvas.getContext('2d');
-        canvas.width = 400; canvas.height = 600;
-        
+        let gameGap, gameSpeed, isEasyMode, gameActive = false, requestID;
         let boxes = 10, gravity = 0.22, velocity = 0, pipes = [];
-        const truck = { x: 50, y: 150 };
+        const truck = { x: 40, y: 50, w: 55, h: 35 };
 
         function drawTruck() {
-            ctx.fillStyle = "#fbbf24"; 
-            for(let i = 0; i < boxes; i++) {
-                ctx.fillRect(truck.x + 2 + ((i%5)*10), truck.y-8-(Math.floor(i/5)*8), 8, 8);
+            ctx.fillStyle = "#fbbf24"; // Cor das caixas
+            // Ajuste para desenhar até 12 caixas organizadas
+            for(let i = 0; i < boxes; i++) { 
+                ctx.fillRect(truck.x + (i % 4) * 9, truck.y - 10 - Math.floor(i / 4) * 8, 7, 7); 
             }
-            ctx.fillStyle = "#64748b"; ctx.fillRect(truck.x, truck.y, 45, 38);
-            ctx.fillStyle = "black";
-            ctx.font = "900 11px Inter, sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText("FLIPPY", truck.x + 22.5, truck.y + 16);
-            ctx.fillText("TRUCK", truck.x + 22.5, truck.y + 28);
-            ctx.fillStyle = "#1e40af"; ctx.fillRect(truck.x + 45, truck.y + 10, 25, 28);
-            ctx.fillStyle = "#a5f3fc"; ctx.fillRect(truck.x + 60, truck.y + 14, 8, 12);
-            [12, 33, 58].forEach(wx => { 
-                ctx.fillStyle="white";
-                ctx.beginPath(); ctx.arc(truck.x+wx, truck.y+38, 6, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle="#000"; ctx.lineWidth=1; ctx.stroke();
-                ctx.fillStyle="black";
-                ctx.beginPath(); ctx.arc(truck.x+wx, truck.y+38, 2, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#64748b"; ctx.fillRect(truck.x, truck.y, 40, 30);
+            ctx.fillStyle = "#1e40af"; ctx.fillRect(truck.x + 40, truck.y + 8, 15, 22);
+            ctx.fillStyle = "#a5f3fc"; ctx.fillRect(truck.x + 48, truck.y + 12, 5, 8);
+            [8, 28, 48].forEach(rx => {
+                ctx.fillStyle = "black"; ctx.beginPath(); ctx.arc(truck.x + rx, truck.y + 30, 5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#94a3b8"; ctx.beginPath(); ctx.arc(truck.x + rx, truck.y + 30, 2, 0, Math.PI*2); ctx.fill();
             });
         }
 
         function loop() {
             if (!gameActive) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            velocity += gravity; truck.y += velocity;
-            if (pipes.length === 0 || pipes[pipes.length-1].x < canvas.width - 250) {
-                pipes.push({ x: canvas.width, y: Math.random()*200+100, passed: false });
+            velocity += gravity;
+            truck.y += velocity;
+
+            if (pipes.length === 0 || pipes[pipes.length-1].x < canvas.width - 240) {
+                let minH = canvas.height * 0.15;
+                let maxH = canvas.height * 0.45;
+                let yPos = Math.random() * (maxH - minH) + minH;
+                let currentGap = isEasyMode ? gameGap - 60 : gameGap;
+                pipes.push({ x: canvas.width, y: yPos, passed: false, customGap: currentGap });
             }
-            pipes.forEach((p) => {
+
+            pipes.forEach(p => {
                 p.x -= gameSpeed;
-                ctx.fillStyle = "#1e293b"; 
-                ctx.fillRect(p.x, 0, 50, p.y); ctx.fillRect(p.x, p.y+gameGap, 50, canvas.height);
-                if (truck.x+5 < p.x+50 && truck.x+60 > p.x && (truck.y+5 < p.y || truck.y+35 > p.y+gameGap)) gameOver();
-                if (!p.passed && p.x < truck.x) { 
-                    p.passed = true; boxes--; 
+                ctx.fillStyle = "#1e293b";
+                ctx.fillRect(p.x, 0, 55, p.y);
+                ctx.fillRect(p.x, p.y + p.customGap, 55, canvas.height); 
+
+                if (truck.x + truck.w > p.x && truck.x < p.x + 55) {
+                    if (truck.y < p.y || truck.y + truck.h > p.y + p.customGap) gameOver();
+                }
+
+                if (!p.passed && p.x < truck.x) {
+                    p.passed = true;
+                    boxes--;
                     document.getElementById('boxCount').innerText = boxes;
-                    playSfx(600, 'sine', 0.1, 0.1);
+                    playNote(900, 0.1);
                     if (boxes <= 0) victory();
                 }
             });
-            if(pipes.length > 0 && pipes[0].x < -60) pipes.shift();
-            if (truck.y+40 > canvas.height || truck.y < 0) gameOver();
+
+            pipes = pipes.filter(p => p.x > -60);
+            if (truck.y > canvas.height || truck.y < -50) gameOver();
+
             drawTruck();
             requestID = requestAnimationFrame(loop);
         }
 
         function gameOver() {
-            gameActive = false; cancelAnimationFrame(requestID);
+            gameActive = false;
+            cancelAnimationFrame(requestID);
+            [330, 261].forEach((f, i) => setTimeout(() => playNote(f, 0.5, 'triangle'), i * 300));
+            document.getElementById('mobile-hud').style.display = 'none';
             document.getElementById('game-over-screen').classList.replace('hidden', 'flex');
-            playMelody(musicLose, true);
         }
 
         function victory() {
-            gameActive = false; cancelAnimationFrame(requestID);
+            gameActive = false;
+            cancelAnimationFrame(requestID);
+            [523, 783, 1046].forEach((f, i) => setTimeout(() => playNote(f, 0.4), i * 150));
+            document.getElementById('mobile-hud').style.display = 'none';
             document.getElementById('victory-screen').classList.replace('hidden', 'flex');
-            document.getElementById('victory-msg').innerText = `${playerName} CONCLUIU A ENTREGA!`;
-            playMelody(musicWin, true);
         }
 
-        function newMission() {
-            stopMelody();
-            playSfx(400, 'sine', 0.2, 0.1);
-            document.getElementById('victory-screen').classList.replace('flex', 'hidden');
-            document.getElementById('start-screen').classList.replace('hidden', 'flex');
-            resetGameData();
-        }
-
-        function restartSameLevel() {
-            stopMelody();
-            playSfx(400, 'square', 0.1, 0.1);
-            document.getElementById('game-over-screen').classList.replace('flex', 'hidden');
-            resetGameData(); startCountdown();
-        }
-
-        function backToMenu() {
-            stopMelody();
-            playSfx(200, 'square', 0.1, 0.1);
-            document.getElementById('game-over-screen').classList.replace('flex', 'hidden');
-            document.getElementById('start-screen').classList.replace('hidden', 'flex');
-            resetGameData();
-        }
-
-        function resetGameData() {
-            boxes = 10; velocity = 0; truck.y = 150; pipes = [];
-            document.getElementById('boxCount').innerText = boxes;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawTruck();
-        }
-
-        function selectDifficulty(gap, speed) {
-            stopMelody();
-            playSfx(700, 'square', 0.15, 0.15); 
-            gameGap = gap; gameSpeed = speed;
-            document.getElementById('start-screen').classList.replace('flex', 'hidden');
+        function selectDifficulty(gap, speed, easy) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            gameGap = gap; gameSpeed = speed; isEasyMode = easy;
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('top-msg').classList.add('hidden');
+            resetGame();
             startCountdown();
         }
 
-        function saveAndContinue() {
-            playSfx(500, 'square', 0.1, 0.1);
-            const input = document.getElementById('playerNameInput').value.trim();
-            if(input) {
-                playerName = input;
-                document.getElementById('panelPlayerName').innerText = playerName;
-                document.getElementById('saved-name-display').innerText = `MOTORISTA: ${playerName}`;
-                document.getElementById('player-input-screen').classList.replace('flex', 'hidden');
-                document.getElementById('start-screen').classList.replace('hidden', 'flex');
-            }
-        }
-
-        function showNameInput() {
-            playSfx(300, 'square', 0.1, 0.1);
-            document.getElementById('start-screen').classList.replace('flex', 'hidden');
-            document.getElementById('player-input-screen').classList.replace('hidden', 'flex');
-        }
-
         function startCountdown() {
+            const container = document.getElementById('countdown-container');
             const cd = document.getElementById('countdown');
+            const hud = document.getElementById('mobile-hud');
             let count = 3;
-            cd.innerText = count; cd.style.display = 'flex';
+            cd.innerText = count;
+            container.style.display = 'flex';
+            hud.style.display = 'flex';
+            
             const timer = setInterval(() => {
-                playSfx(440, 'sine', 0.1, 0.1);
                 count--;
-                if (count > 0) cd.innerText = count;
-                else if (count === 0) {
+                if (count > 0) {
+                    cd.innerText = count;
+                    playNote(400, 0.1);
+                } else if (count === 0) {
                     cd.innerText = "GO!";
-                    playSfx(880, 'sine', 0.2, 0.1);
+                    playNote(800, 0.2);
+                } else {
+                    clearInterval(timer);
+                    container.style.display = 'none';
+                    gameActive = true;
+                    loop();
                 }
-                else { 
-                    clearInterval(timer); cd.style.display = 'none'; 
-                    gameActive = true; loop(); 
-                }
-            }, 800);
+            }, 900);
         }
 
-        const jump = (e) => { 
-            if(e) e.preventDefault(); 
-            if(gameActive) {
-                playSfx(150, 'triangle', 0.05, 0.15);
-                velocity = -4.8; 
-            }
-        };
-        document.getElementById('gasPedal').addEventListener('mousedown', jump);
-        document.getElementById('gasPedal').addEventListener('touchstart', jump);
-        window.addEventListener('keydown', (e) => { if(e.code === 'Space') jump(); });
+        function resetGame() {
+            // NOVIDADE: Nível fácil começa com 12 caixas, outros com 10.
+            boxes = isEasyMode ? 12 : 10; 
+            velocity = -0.5; 
+            gravity = 0.10; 
+            truck.y = canvas.height / 2; 
+            pipes = [];
+            document.getElementById('boxCount').innerText = boxes;
+            setTimeout(() => { if(gameActive) gravity = 0.22; }, 2500);
+        }
 
-        window.onload = () => drawTruck();
+        function restartSameLevel() {
+            document.getElementById('game-over-screen').classList.replace('flex', 'hidden');
+            resetGame(); startCountdown();
+        }
+
+        function backToMenu() {
+            document.getElementById('game-over-screen').classList.add('hidden');
+            document.getElementById('victory-screen').classList.add('hidden');
+            document.getElementById('start-screen').classList.replace('hidden', 'flex');
+            document.getElementById('top-msg').classList.remove('hidden');
+        }
+
+        const pedal = document.getElementById('gasPedal');
+        const jump = (e) => { 
+            e.preventDefault(); 
+            velocity = -5.0; 
+            playNote(150, 0.05, 'triangle', 0.15); 
+        };
+        pedal.addEventListener('touchstart', jump);
+        pedal.addEventListener('mousedown', jump);
+
+        window.onload = () => { resizeCanvas(); drawTruck(); };
     </script>
 </body>
 </html>
