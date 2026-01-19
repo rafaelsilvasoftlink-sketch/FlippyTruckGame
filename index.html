@@ -16,6 +16,11 @@
             100% { background-position: 0% 50%; background-color: #020617; }
         }
 
+        @keyframes truck-slide {
+            0% { transform: translateX(-120px); }
+            100% { transform: translateX(115vw); }
+        }
+
         body { 
             background: #020617; margin: 0; overflow: hidden; 
             font-family: 'Inter', sans-serif; color: white; touch-action: none; 
@@ -23,25 +28,21 @@
         }
         .font-header { font-family: 'Orbitron', sans-serif; }
 
+        .neon-pulse { animation: neon-glow 2.5s infinite ease-in-out; }
         @keyframes neon-glow {
             0%, 100% { opacity: 1; text-shadow: 0 0 15px currentColor; box-shadow: 0 0 15px currentColor; border-color: currentColor; }
             50% { opacity: 0.7; text-shadow: 0 0 5px currentColor; box-shadow: 0 0 5px currentColor; border-color: currentColor; }
         }
-        .neon-pulse { animation: neon-glow 2.5s infinite ease-in-out; }
+
         .oval-container { border-radius: 9999px; border-width: 2px; padding: 12px 24px; }
 
         #gasPedal { 
-            width: 70px; 
-            height: 110px; 
+            width: 70px; height: 110px; 
             background: linear-gradient(145deg, #1e293b, #0f172a);
             border: 3px solid #a855f7;
             border-radius: 15px 15px 10px 10px;
-            display: flex; 
-            flex-direction: column;
-            align-items: center; 
-            justify-content: space-between; 
-            padding: 10px 0;
-            pointer-events: auto;
+            display: flex; flex-direction: column; align-items: center; justify-content: space-between; 
+            padding: 10px 0; pointer-events: auto;
             transform: perspective(100px) rotateX(10deg);
             box-shadow: 0 10px 20px rgba(0,0,0,0.5), 0 0 15px rgba(168, 85, 247, 0.4);
             transition: transform 0.1s, box-shadow 0.1s;
@@ -50,7 +51,6 @@
         #gasPedal:active {
             transform: perspective(100px) rotateX(25deg) scale(0.92);
             box-shadow: 0 2px 10px rgba(0,0,0,0.8), 0 0 25px rgba(168, 85, 247, 0.7);
-            background: #1e1b4b;
         }
 
         .pedal-line { width: 40px; height: 4px; background: rgba(168, 85, 247, 0.3); border-radius: 2px; }
@@ -62,6 +62,18 @@
             background-size: 400% 400%;
             animation: bg-shimmer 8s infinite ease-in-out;
         }
+
+        .footer-truck-anim {
+            position: absolute; bottom: 30px; left: 0;
+            animation: truck-slide 12s linear infinite;
+            display: flex; align-items: flex-end;
+            pointer-events: none; opacity: 0.8;
+        }
+        .mini-wheel {
+            width: 12px; height: 12px; background: #000; border-radius: 50%;
+            position: absolute; bottom: -6px; display: flex; align-items: center; justify-content: center;
+        }
+        .mini-hubcap { width: 4px; height: 4px; background: #94a3b8; border-radius: 50%; }
 
         #game-wrapper { flex: 1; position: relative; width: 100%; background: black; overflow: hidden; }
         canvas { width: 100%; height: 100%; }
@@ -102,6 +114,18 @@
             <button onclick="selectDifficulty(380, 1.8, true)" class="diff-btn oval-container neon-pulse text-emerald-400 border-emerald-500">Fácil</button>
             <button onclick="selectDifficulty(280, 2.8, false)" class="diff-btn oval-container neon-pulse text-amber-400 border-amber-500">Médio</button>
             <button onclick="selectDifficulty(200, 4.0, false)" class="diff-btn oval-container neon-pulse text-red-400 border-red-500">Difícil</button>
+
+            <div class="footer-truck-anim">
+                <div style="width:40px; height:28px; background:#64748b; position:relative; border-radius: 2px;">
+                    <div class="mini-wheel" style="left: 5px;"><div class="mini-hubcap"></div></div>
+                    <div class="mini-wheel" style="left: 22px;"><div class="mini-hubcap"></div></div>
+                    
+                    <div style="width:16px; height:22px; background:#1e40af; position:absolute; right:-16px; bottom:0; border-radius: 0 4px 2px 0;">
+                        <div style="width:7px; height:8px; background:#a5f3fc; position:absolute; top:4px; right:3px; border-radius: 1px;"></div>
+                        <div class="mini-wheel" style="right: 2px;"><div class="mini-hubcap"></div></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="game-over-screen" class="overlay-screen hidden">
@@ -133,7 +157,6 @@
                 <p class="text-[9px] uppercase font-bold text-slate-400 text-center">Caixas</p>
                 <p id="boxCount" class="text-3xl font-black italic text-center">10</p>
             </div>
-            
             <div id="gasPedal">
                 <div class="pedal-line"></div>
                 <div class="pedal-line"></div>
@@ -173,8 +196,7 @@
         const truck = { x: 40, y: 50, w: 55, h: 35 };
 
         function drawTruck() {
-            ctx.fillStyle = "#fbbf24"; // Cor das caixas
-            // Ajuste para desenhar até 12 caixas organizadas
+            ctx.fillStyle = "#fbbf24";
             for(let i = 0; i < boxes; i++) { 
                 ctx.fillRect(truck.x + (i % 4) * 9, truck.y - 10 - Math.floor(i / 4) * 8, 7, 7); 
             }
@@ -279,7 +301,6 @@
         }
 
         function resetGame() {
-            // NOVIDADE: Nível fácil começa com 12 caixas, outros com 10.
             boxes = isEasyMode ? 12 : 10; 
             velocity = -0.5; 
             gravity = 0.10; 
